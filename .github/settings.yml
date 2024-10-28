@@ -1,0 +1,4 @@
+_extends: .github:settings.yml
+repository:
+  name: portsvc
+  description: Helper service for ports

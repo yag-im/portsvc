@@ -1,0 +1,29 @@
+{
+    "name": "yag-portsvc",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "runArgs": [
+        "--name=yag-portsvc",
+        "--add-host=sqldb.yag.dc:host-gateway",
+        "--env-file=${localWorkspaceFolder}/.devcontainer/.env",
+        "--env-file=${localWorkspaceFolder}/.devcontainer/secret.env"
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.black-formatter",
+                "humao.rest-client"
+            ]
+        }
+    },
+    "postCreateCommand": ".devcontainer/post-create.sh",
+    "appPort": [
+        "8087:80"
+    ],
+    "mounts": [
+        "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind",
+        "source=${env:HOME}${env:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind",
+        "source=/ara/devel/acme/yag/appstor_data,target=/mnt/appstor,type=bind"
+    ]
+}
