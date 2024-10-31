@@ -88,8 +88,10 @@ else
 endif
 
 .PHONY: gha-build
-gha-build: ## GitHub action: install all deps, lint, test and build app	
+gha-build: ## GitHub action: install all deps, lint, test and build app
 	poetry install --only dev
+	poetry run tox --version 
+	poetry run which tox
 	$(MAKE) lint
 	$(MAKE) test
 	poetry install
