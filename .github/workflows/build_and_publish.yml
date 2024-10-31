@@ -33,7 +33,7 @@ jobs:
       - name: Bump version and push tag
         id: tag_version
         uses: mathieudutour/github-tag-action@v6.2
-        env:
+        with:
           github_token: ${{ secrets.REPO_ACCESS_TOKEN }}
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
