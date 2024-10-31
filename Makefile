@@ -89,7 +89,8 @@ endif
 
 .PHONY: gha-build
 gha-build: ## GitHub action: install all deps, lint, test and build app	
-	poetry install
+	poetry install --only dev
 	$(MAKE) lint
 	$(MAKE) test
+	poetry install
 	poetry build -f wheel
