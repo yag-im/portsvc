@@ -36,11 +36,11 @@ bootstrap: ## Perform a bootstrap
 
 .PHONY: lint
 lint: ## Run linters
-	tox -e lint
+	poetry run tox -e lint
 
 .PHONY: test
 test: ## Run unit tests
-	tox -e test
+	poetry run tox -e test
 
 .PHONY: clean
 clean: ## Remove all generated artifacts (except .venv and .env)
@@ -90,8 +90,6 @@ endif
 .PHONY: gha-build
 gha-build: ## GitHub action: install all deps, lint, test and build app
 	poetry install --only dev
-	poetry run tox --version 
-	poetry run which tox
 	$(MAKE) lint
 	$(MAKE) test
 	poetry install
