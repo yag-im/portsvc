@@ -86,3 +86,10 @@ ifdef TAG
 else
 	@echo 1>&2 "usage: make docker-pub TAG=1.0.0"
 endif
+
+.PHONY: gha-build
+gha-build: ## GitHub action: install all deps, lint, test and build app	
+	poetry install
+	$(MAKE) lint
+	$(MAKE) test
+	poetry build -f wheel

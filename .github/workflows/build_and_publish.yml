@@ -6,8 +6,9 @@ on:
     branches: ['main']
 
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
 
 jobs:
   build-and-push-image:
@@ -25,17 +26,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'poetry'
-      - run: poetry install
       - name: Build app
-        run: poetry build -f wheel
+        run: make gha-build
+      - name: Bump version and push tag
+        uses: mathieudutour/github-tag-action@v6.2
+        env:
+          default_bump: patch
+          github_token: ${{ secrets.REPO_ACCESS_TOKEN }}
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_ACCESS }}
+          password: ${{ secrets.GHCR_ACCESS_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
