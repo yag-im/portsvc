@@ -14,7 +14,7 @@ for testing, and then using the production `portsvc`'s URL to publish the new ap
 
 ## Development
 
-Before starting a `devcontainer`:
+### Prerequisite
 
 Mount ports_data storage on the host machine at:
 
@@ -26,11 +26,12 @@ Make sure it contains a `media` folder with a following structure:
         covers/
         screenshots/
 
-Create files below:
-
-.devcontainer/secrets.env
+Create *.devcontainer/secrets.env* file:
 
     SQLDB_PASSWORD=***VALUE***
 
-Then simply open the project in any IDE that supports devcontainers (VSCode is recommended), and you can begin working
-right away.
+The following devcontainers should be up and running:
+
+    sqldb
+
+Then simply open this project in any IDE that supports devcontainers (VSCode is recommended).
