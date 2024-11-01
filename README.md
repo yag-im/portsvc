@@ -20,7 +20,7 @@ Mount appstor disk at:
 
     /mnt/appstor
 
-Make sure it contains a `media` folder with following structure:
+Make sure it contains a `media` folder with a following structure:
 
     media/
         covers/
@@ -59,4 +59,4 @@ Create following files:
 
 .devcontainer/secrets.env
 
-    SQLDB_PASSWORD=PASTE-PORTSVC-SQL-DB-PASSWORD-HERE
+    SQLDB_PASSWORD=***VALUE***
