@@ -7,7 +7,7 @@
         "--name=yag-portsvc",
         "--add-host=sqldb.yag.dc:host-gateway",
         "--env-file=${localWorkspaceFolder}/.devcontainer/.env",
-        "--env-file=${localWorkspaceFolder}/.devcontainer/secret.env"
+        "--env-file=${localWorkspaceFolder}/.devcontainer/secrets.env"
     ],
     "customizations": {
         "vscode": {
@@ -24,6 +24,6 @@
     "mounts": [
         "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind",
         "source=${env:HOME}${env:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind",
-        "source=/ara/devel/acme/yag/appstor_data,target=/mnt/appstor,type=bind"
+        "source=/mnt/appstor,target=/mnt/appstor,type=bind"
     ]
 }

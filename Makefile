@@ -58,7 +58,7 @@ docker-run: ## Run dev docker image
 		-p $(LISTEN_PORT):$(LISTEN_PORT)/tcp \
 		--add-host host.docker.internal:host-gateway \
 		--env-file $(ROOT_DIR)/.devcontainer/.env \
-		--env-file $(ROOT_DIR)/.devcontainer/secret.env \
+		--env-file $(ROOT_DIR)/.devcontainer/secrets.env \
 		$(DOCKER_IMAGE_TAG)
 
 .PHONY: docker-build
