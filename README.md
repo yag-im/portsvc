@@ -12,7 +12,7 @@ The service provides two endpoints:
 The first endpoint is called twice from [ports](https://github.com/yag-im/ports): first to update the local SQL database
 for testing, and then using the production `portsvc`'s URL to publish the new app release to the production environment.
 
-# Development
+## Development
 
 Before starting a `devcontainer`:
 
@@ -31,3 +31,6 @@ Create files below:
 .devcontainer/secrets.env
 
     SQLDB_PASSWORD=***VALUE***
+
+Then simply open the project in any IDE that supports devcontainers (VSCode is recommended), and you can begin working
+right away.
