@@ -30,15 +30,15 @@ def upload(app_release_id: str) -> None:
 
     if app_release.media_assets:
         localized_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.media_assets)
-        appstor_media_dir = Path(os.environ["APPSTOR_MEDIA_DIR"])
+        ports_data_media_dir = Path(os.environ["PORTS_DATA_MEDIA_DIR"])
         with tempfile.TemporaryDirectory() as td:
             img_name = f"{localized_media_assets.cover.image_id}.jpg"
-            s3.upload_file(appstor_media_dir / "covers" / img_name, AWS_BUCKET_NAME, f"covers/{img_name}")
+            s3.upload_file(ports_data_media_dir / "covers" / img_name, AWS_BUCKET_NAME, f"covers/{img_name}")
             if localized_media_assets.screenshots:
                 for ss in localized_media_assets.screenshots:
                     img_name = f"{ss.image_id}.jpg"
                     s3.upload_file(
-                        appstor_media_dir / "screenshots" / img_name, AWS_BUCKET_NAME, f"screenshots/{img_name}"
+                        ports_data_media_dir / "screenshots" / img_name, AWS_BUCKET_NAME, f"screenshots/{img_name}"
                     )
 
     game_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.game.media_assets)

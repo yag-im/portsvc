@@ -24,6 +24,6 @@
     "mounts": [
         "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind",
         "source=${env:HOME}${env:USERPROFILE}/.aws,target=/home/vscode/.aws,type=bind",
-        "source=/mnt/appstor,target=/mnt/appstor,type=bind"
+        "source=/mnt/ports_data,target=/mnt/ports_data,type=bind"
     ]
 }
