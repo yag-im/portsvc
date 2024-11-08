@@ -16,9 +16,9 @@ for testing, and then using the production `portsvc`'s URL to publish the new ap
 
 ### Prerequisite
 
-Mount ports_data storage on the host machine at:
+Create ports data dir on the host machine at:
 
-    /mnt/ports_data
+    ~/yag/data/ports
 
 Make sure it contains a `media` folder with a following structure:
 
