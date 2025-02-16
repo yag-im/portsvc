@@ -64,5 +64,5 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
 
 
 def publish(igdb_slug: str, app_release_id: str) -> None:
-    print(igdb_slug)
+    log.debug("publishing app: %s, app_release_id: %s", igdb_slug, app_release_id)
     upload_media_assets(app_release_id)
