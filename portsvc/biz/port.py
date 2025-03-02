@@ -41,7 +41,7 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
         "companies": [{"id": company.id, "developer": False, "porting": False, "publisher": True, "supporting": False}],
         "distro": UpsertAppReleaseRequestDTO.Distro.Schema().dump(req.distro),
         "game_id": app.id,
-        "is_visible": True,
+        "is_visible": req.is_visible,
         "lang": req.lang,
         "media_assets": (MediaAssets.Schema().dump(req.media_assets) if req.media_assets else null()),
         "name": req.name,
