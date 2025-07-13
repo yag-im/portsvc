@@ -33,7 +33,7 @@ class UpsertAppReleaseRequestDTO:
 
     @dataclass
     class Refs:
-        ag_id: t.Optional[str]
+        ag_id: t.Optional[t.Union[str, int]]
         lutris_id: t.Optional[str]
         mg_id: t.Optional[int]
         pcgw_id: t.Optional[str]
