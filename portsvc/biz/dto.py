@@ -17,7 +17,7 @@ class MediaAssets:
         height: int
         image_id: str
 
-    cover: Cover
+    cover: t.Optional[Cover]
     screenshots: t.Optional[list[Screenshot]] = field(default_factory=list)
     Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 

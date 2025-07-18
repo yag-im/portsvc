@@ -31,9 +31,11 @@ def upload(app_release_id: str) -> None:
     if app_release.media_assets:
         localized_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.media_assets)
         ports_data_media_dir = Path(os.environ["PORTS_DATA_MEDIA_DIR"])
+
         with tempfile.TemporaryDirectory() as td:
-            img_name = f"{localized_media_assets.cover.image_id}.jpg"
-            s3.upload_file(ports_data_media_dir / "covers" / img_name, AWS_BUCKET_NAME, f"covers/{img_name}")
+            if localized_media_assets.cover:
+                img_name = f"{localized_media_assets.cover.image_id}.jpg"
+                s3.upload_file(ports_data_media_dir / "covers" / img_name, AWS_BUCKET_NAME, f"covers/{img_name}")
             if localized_media_assets.screenshots:
                 for ss in localized_media_assets.screenshots:
                     img_name = f"{ss.image_id}.jpg"
@@ -43,7 +45,7 @@ def upload(app_release_id: str) -> None:
 
     game_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.game.media_assets)
     with tempfile.TemporaryDirectory() as td:
-        if not app_release.media_assets:
+        if not app_release.media_assets and game_media_assets.cover:
             # no localized cover - proceed with one from igdb
             tmp_img_name = f"{game_media_assets.cover.image_id}.jpg"
             tmp_img_path = Path(td) / tmp_img_name
