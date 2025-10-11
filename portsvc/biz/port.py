@@ -36,7 +36,7 @@ def try_to_fetch_game_from_igdb(igdb_slug: str, upd_params: dict) -> bool:
     age_ratings = igdb_game.get("age_ratings", None)
     if age_ratings:
         for ar in age_ratings:
-            if ar["category"] == 1:
+            if ar.get("category", None) == 1:
                 esrb_rating = ar["rating"]
                 break
 
