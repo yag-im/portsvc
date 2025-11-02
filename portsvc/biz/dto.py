@@ -51,6 +51,7 @@ class UpsertAppReleaseRequestDTO:
         screen_height: int
         midi: bool = False
         ua: Ua = field(default_factory=Ua)
+        loading_duration: t.Optional[int] = 0
         Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
     @dataclass
