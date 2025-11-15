@@ -88,6 +88,8 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
     upd_params = {"refs": UpsertAppReleaseRequestDTO.Refs.Schema().dump(req.refs)}
     if req.esrb_rating:
         upd_params["esrb_rating"] = req.esrb_rating
+    if req.tags:
+        upd_params["tags"] = req.tags
     rows_updated = sqldb.session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).update(upd_params)
     if rows_updated == 0:
         if not try_to_fetch_game_from_igdb(igdb_slug, upd_params):

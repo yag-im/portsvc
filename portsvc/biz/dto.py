@@ -75,6 +75,7 @@ class UpsertAppReleaseRequestDTO:
     uuid: str
     year_released: int
     is_visible: bool = True
+    tags: t.Optional[list[str]] = field(default_factory=list)
     Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
 
