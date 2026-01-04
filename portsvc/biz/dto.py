@@ -23,7 +23,7 @@ class MediaAssets:
 
 
 @dataclass
-class UpsertAppReleaseRequestDTO:
+class PortDescr:
     @dataclass
     class Distro:
         format: str
@@ -44,13 +44,13 @@ class UpsertAppReleaseRequestDTO:
     class Reqs:
         @dataclass
         class Ua:
-            lock_pointer: bool = False
+            lock_pointer: t.Optional[bool]
 
         color_bits: t.Optional[int]
         screen_width: int
         screen_height: int
-        midi: bool = False
-        ua: Ua = field(default_factory=Ua)
+        midi: t.Optional[bool] = False
+        ua: t.Optional[Ua] = None
         loading_duration: t.Optional[int] = 0
         Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
@@ -76,6 +76,19 @@ class UpsertAppReleaseRequestDTO:
     year_released: int
     is_visible: bool = True
     tags: t.Optional[list[str]] = field(default_factory=list)
+    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+
+
+@dataclass
+class PortInstaller:
+    tasks: list[dict] = field(default_factory=list)
+    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+
+
+@dataclass
+class UpsertAppReleaseRequestDTO:
+    descr: PortDescr
+    installer: PortInstaller
     Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
 

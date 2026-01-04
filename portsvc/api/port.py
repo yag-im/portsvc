@@ -18,8 +18,8 @@ from portsvc.biz.port import (
 class UpsertAppRelease(Resource):
     def post(self, igdb_slug: str, app_release_uuid: str) -> Response:
         """Adds new or updates existing app release."""
-        descr = yaml.safe_load(request.get_data())["descr"]
-        req: UpsertAppReleaseRequestDTO = UpsertAppReleaseRequestDTO.Schema().load(data=descr)
+        port_data = yaml.safe_load(request.get_data())
+        req: UpsertAppReleaseRequestDTO = UpsertAppReleaseRequestDTO.Schema().load(data=port_data)
         res = upsert_app_release(igdb_slug, app_release_uuid, req)
         return UpsertAppReleaseResponseDTO.Schema().dump(res), 200
 

@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from portsvc.biz.dto import (
     MediaAssets,
+    PortDescr,
     UpsertAppReleaseRequestDTO,
 )
 from portsvc.biz.errors import AppOpException
@@ -82,14 +83,57 @@ def try_to_fetch_game_from_igdb(igdb_slug: str, upd_params: dict) -> bool:
     return True
 
 
+def get_ua_lock_pointer_state(req: UpsertAppReleaseRequestDTO) -> bool:
+    port_descr = req.descr
+    port_installer = req.installer
+    runner_name = port_descr.runner.name.lower()
+    if runner_name == "scummvm":
+        return False
+    elif runner_name == "retroarch":
+        for t in port_installer.tasks:
+            if "retroarch" in t:
+                tasks = t["retroarch"].get("tasks", [])
+                for t in tasks:
+                    if "gen_run_script" in t:
+                        flavor = t["gen_run_script"].get("core", "default")
+                        if flavor == "fuse":
+                            return False
+                        elif flavor == "same_cdi":
+                            return True
+    elif runner_name == "dosbox-staging":
+        return True
+    elif runner_name == "dosbox-x":
+        for t in port_installer.tasks:
+            if "dosbox" in t:
+                flavor = t["dosbox"].get("flavor", None)
+                if flavor == "WIN311":
+                    return False
+                else:
+                    return True
+    elif runner_name == "qemu":
+        return False
+    elif runner_name == "wine":
+        return False
+    elif runner_name == "dosbox":
+        return True
+    raise ValueError(f"Cannot determine UA lock pointer state based on provided data: {req}")
+
+
 def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppReleaseRequestDTO) -> dict:
     """Upserts app release."""
+    port_descr = req.descr
+    if port_descr.reqs.ua is None or port_descr.reqs.ua.lock_pointer is None:
+        if port_descr.reqs.ua is None:
+            port_descr.reqs.ua = PortDescr.Reqs.Ua(get_ua_lock_pointer_state(req))
+        else:
+            port_descr.reqs.ua.lock_pointer = get_ua_lock_pointer_state(req)
+
     # upserting "app" table parts first
-    upd_params = {"refs": UpsertAppReleaseRequestDTO.Refs.Schema().dump(req.refs)}
-    if req.esrb_rating:
-        upd_params["esrb_rating"] = req.esrb_rating
-    if req.tags:
-        upd_params["tags"] = req.tags
+    upd_params = {"refs": PortDescr.Refs.Schema().dump(port_descr.refs)}
+    if port_descr.esrb_rating:
+        upd_params["esrb_rating"] = port_descr.esrb_rating
+    if port_descr.tags:
+        upd_params["tags"] = port_descr.tags
     rows_updated = sqldb.session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).update(upd_params)
     if rows_updated == 0:
         if not try_to_fetch_game_from_igdb(igdb_slug, upd_params):
@@ -99,22 +143,26 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
 
     # upserting "app_release" table parts
     app: AppDAO = sqldb.session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).first()
-    company: AppCompanyDAO = sqldb.session.query(AppCompanyDAO).filter(AppCompanyDAO.name == req.publisher).first()
-    platform: AppPlatformDAO = sqldb.session.query(AppPlatformDAO).filter(AppPlatformDAO.slug == req.platform).first()
+    company: AppCompanyDAO = (
+        sqldb.session.query(AppCompanyDAO).filter(AppCompanyDAO.name == port_descr.publisher).first()
+    )
+    platform: AppPlatformDAO = (
+        sqldb.session.query(AppPlatformDAO).filter(AppPlatformDAO.slug == port_descr.platform).first()
+    )
     values = {
-        "app_reqs": UpsertAppReleaseRequestDTO.Reqs.Schema().dump(req.reqs),
+        "app_reqs": PortDescr.Reqs.Schema().dump(port_descr.reqs),
         "companies": [{"id": company.id, "developer": False, "porting": False, "publisher": True, "supporting": False}],
-        "distro": UpsertAppReleaseRequestDTO.Distro.Schema().dump(req.distro),
+        "distro": PortDescr.Distro.Schema().dump(port_descr.distro),
         "game_id": app.id,
-        "is_visible": req.is_visible,
-        "lang": req.lang,
-        "media_assets": (MediaAssets.Schema().dump(req.media_assets) if req.media_assets else null()),
-        "name": req.name,
+        "is_visible": port_descr.is_visible,
+        "lang": port_descr.lang,
+        "media_assets": (MediaAssets.Schema().dump(port_descr.media_assets) if port_descr.media_assets else null()),
+        "name": port_descr.name,
         "platform_id": platform.id,
-        "runner": UpsertAppReleaseRequestDTO.Runner.Schema().dump(req.runner),
-        "ts_added": req.ts_added,
+        "runner": PortDescr.Runner.Schema().dump(port_descr.runner),
+        "ts_added": port_descr.ts_added,
         "uuid": app_release_uuid,
-        "year_released": req.year_released,
+        "year_released": port_descr.year_released,
     }
     sql_cmd = insert(AppReleaseDAO).values(values)
     sql_cmd = sql_cmd.on_conflict_do_update(
