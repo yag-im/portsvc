@@ -160,7 +160,6 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
         "name": port_descr.name,
         "platform_id": platform.id,
         "runner": PortDescr.Runner.Schema().dump(port_descr.runner),
-        "ts_added": port_descr.ts_added,
         "uuid": app_release_uuid,
         "year_released": port_descr.year_released,
     }

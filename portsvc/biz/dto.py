@@ -71,7 +71,6 @@ class PortDescr:
     refs: Refs
     reqs: Reqs
     runner: Runner
-    ts_added: str  # required to properly render main webapp page, even in the case of the full re-init of db
     uuid: str
     year_released: int
     is_visible: bool = True
