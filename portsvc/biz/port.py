@@ -55,10 +55,7 @@ def try_to_fetch_game_from_igdb(igdb_slug: str, upd_params: dict) -> bool:
     cover = {"image_id": igdb_game["cover"]["image_id"]} if "cover" in igdb_game else None
     media_assets = {"screenshots": screenshots, "cover": cover}
 
-    # genres
-    # TODO: not all titles without a genre in IGDB should be concidered "Educational"
-    # drop a non-null constraint in DB?
-    genres = igdb_game.get("genres", [{"id": 1000000}])
+    genres = igdb_game.get("genres", None)
     if genres:
         genres = [str(g["id"]) for g in genres]
 
