@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import typing as t
@@ -9,6 +10,8 @@ from portsvc.biz.scrapers.misc import post_url
 CLIENT_ID = os.environ.get("IGDB_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("IGDB_CLIENT_SECRET")
 MIN_SLEEP = 0.25
+
+log = logging.getLogger("portsvc")
 
 
 def get_access_token() -> str:
@@ -45,6 +48,8 @@ def get_data(url: str, data: str) -> list[dict]:
             data=data + f"offset {offset};limit {limit};",
         ).json()
         if not cur_res or (("id" not in cur_res[0]) and ("status" in cur_res[0]) and (cur_res[0]["status"] != 200)):
+            if cur_res:
+                log.error(cur_res)
             break
         res += cur_res
         offset += limit
