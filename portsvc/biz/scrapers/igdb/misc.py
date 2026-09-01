@@ -43,13 +43,14 @@ def get_data(url: str, data: str) -> list[dict]:
     limit = 500
     res = []
     while True:
-        cur_res = _post_url(
-            url=url,
-            data=data + f"offset {offset};limit {limit};",
-        ).json()
-        if not cur_res or (("id" not in cur_res[0]) and ("status" in cur_res[0]) and (cur_res[0]["status"] != 200)):
+        query = data + f"offset {offset};limit {limit};"
+        cur_res = _post_url(url=url, data=query).json()
+        if not isinstance(cur_res, list) or not cur_res:
             if cur_res:
-                log.error(cur_res)
+                log.error("IGDB error for %s query=%s: %s", url, query, cur_res)
+            break
+        if "id" not in cur_res[0] and "status" in cur_res[0] and cur_res[0]["status"] != 200:
+            log.error("IGDB error for %s query=%s: %s", url, query, cur_res)
             break
         res += cur_res
         offset += limit
