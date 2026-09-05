@@ -99,6 +99,8 @@ def get_ua_lock_pointer_state(req: UpsertAppReleaseRequestDTO) -> bool:
                             return True
                         elif flavor == "genesis_plus_gx":
                             return True
+                        elif flavor == "puae":
+                            return True
     elif runner_name == "dosbox-staging":
         return True
     elif runner_name == "dosbox-x":
