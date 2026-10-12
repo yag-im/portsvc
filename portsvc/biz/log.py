@@ -7,7 +7,12 @@ def init() -> None:
     log_level = logging.DEBUG
 
     handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s"))
+    handler.setFormatter(
+        logging.Formatter(
+            "[%(asctime)s.%(msecs)03d] [%(name)s] [%(levelname)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
 
     app_log = logging.getLogger("portsvc")
     app_log.handlers.clear()

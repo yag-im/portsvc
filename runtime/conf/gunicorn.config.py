@@ -2,6 +2,7 @@ import logging
 import os
 
 from gunicorn.arbiter import Arbiter
+from gunicorn.glogging import Logger
 from gunicorn.workers.base import Worker
 from opentelemetry import trace
 from opentelemetry._logs import set_logger_provider
@@ -22,6 +23,15 @@ OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME")
 OTEL_SERVICE_INSTANCE_ID = os.environ.get("OTEL_SERVICE_INSTANCE_ID")
 
 OTEL_TRACE_ENABLED = os.environ.get("OTEL_TRACE_ENABLED", "false").lower() == "true"
+
+
+class GunicornLogger(Logger):
+    # align with app log format (portsvc/biz/log.py): ms precision, no tz
+    error_fmt = r"[%(asctime)s.%(msecs)03d] [%(process)d] [%(levelname)s] %(message)s"
+    datefmt = r"%Y-%m-%d %H:%M:%S"
+
+
+logger_class = GunicornLogger
 
 
 def post_fork(server: Arbiter, worker: Worker) -> None:
