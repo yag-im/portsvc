@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import time
 
 import requests
@@ -9,11 +10,18 @@ from portsvc.biz.scrapers.misc import post_url
 CLIENT_ID = os.environ.get("IGDB_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("IGDB_CLIENT_SECRET")
 MIN_SLEEP = 0.25
+ACCESS_TOKEN_TTL = 24 * 60 * 60  # seconds
 
 log = logging.getLogger("portsvc")
 
 
-def get_access_token() -> str:
+class _AccessTokenCache:
+    token: str | None = None
+    expires_at = 0.0
+    lock = threading.Lock()
+
+
+def _fetch_access_token() -> str:
     # POST: https://id.twitch.tv/oauth2/token?client_id=abcde&client_secret=fghijk&grant_type=client_credentials
     res = post_url(
         "https://id.twitch.tv/oauth2/token",
@@ -23,16 +31,25 @@ def get_access_token() -> str:
             "grant_type": "client_credentials",
         },
     )
-    return res.json()["access_token"]
+    payload = res.json()
+    if "access_token" not in payload:
+        raise RuntimeError(f"Failed to obtain IGDB access token: {payload}")
+    return payload["access_token"]
 
 
-ACCESS_TOKEN = get_access_token()
+def get_access_token() -> str:
+    c = _AccessTokenCache
+    with c.lock:
+        if c.token is None or time.monotonic() >= c.expires_at:
+            c.token = _fetch_access_token()
+            c.expires_at = time.monotonic() + ACCESS_TOKEN_TTL
+        return c.token
 
 
 def _post_url(url: str, data: str | None = None) -> requests.Response:
     return post_url(
         url,
-        headers={"Client-ID": CLIENT_ID, "Authorization": f"Bearer {ACCESS_TOKEN}", "Accept": "application/json"},
+        headers={"Client-ID": CLIENT_ID, "Authorization": f"Bearer {get_access_token()}", "Accept": "application/json"},
         data=data,
     )
 
