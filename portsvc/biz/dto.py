@@ -1,70 +1,61 @@
-import typing as t
-from dataclasses import field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+)
 
-from marshmallow import Schema
-from marshmallow_dataclass import dataclass
+
+class _Model(BaseModel):
+    # unknown fields are rejected, as marshmallow did by default
+    model_config = ConfigDict(extra="forbid")
 
 
-@dataclass
-class MediaAssets:
-    @dataclass
-    class Cover:
+class MediaAssets(_Model):
+    class Cover(_Model):
         image_id: str
 
-    @dataclass
-    class Screenshot:
+    class Screenshot(_Model):
         width: int
         height: int
         image_id: str
 
-    cover: t.Optional[Cover]
-    screenshots: t.Optional[list[Screenshot]] = field(default_factory=list)
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    cover: Cover | None = None
+    screenshots: list[Screenshot] | None = Field(default_factory=list)
 
 
-@dataclass
-class PortDescr:
-    @dataclass
-    class Distro:
+class PortDescr(_Model):
+    class Distro(_Model):
         format: str
         url: str
-        files: list[str] = field(default_factory=list)
-        Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+        files: list[str] = Field(default_factory=list)
 
-    @dataclass
-    class Refs:
-        ag_id: t.Optional[t.Union[str, int]]
-        lutris_id: t.Optional[str]
-        mg_id: t.Optional[int]
-        pcgw_id: t.Optional[str]
-        qz_id: t.Optional[int]
-        Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    class Refs(_Model):
+        ag_id: str | int | None = None
+        lutris_id: str | None = None
+        mg_id: int | None = None
+        pcgw_id: str | None = None
+        qz_id: int | None = None
 
-    @dataclass
-    class Reqs:
-        @dataclass
-        class Ua:
-            lock_pointer: t.Optional[bool]
+    class Reqs(_Model):
+        class Ua(_Model):
+            lock_pointer: bool | None = None
 
-        color_bits: t.Optional[int]
+        color_bits: int | None = None
         screen_width: int
         screen_height: int
-        midi: t.Optional[bool] = False
-        ua: t.Optional[Ua] = None
-        loading_duration: t.Optional[int] = 0
-        Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+        midi: bool | None = False
+        ua: Ua | None = None
+        loading_duration: int | None = 0
 
-    @dataclass
-    class Runner:
+    class Runner(_Model):
         name: str
         ver: str
-        Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
     distro: Distro
-    esrb_rating: t.Optional[int]
+    esrb_rating: int | None = None
     igdb_slug: str
     lang: str
-    media_assets: t.Optional[MediaAssets]  # localized media assets
+    media_assets: MediaAssets | None = None  # localized media assets
     name: str
     platform: str
     publisher: str
@@ -74,24 +65,17 @@ class PortDescr:
     uuid: str
     year_released: int
     is_visible: bool = True
-    tags: t.Optional[list[str]] = field(default_factory=list)
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    tags: list[str] | None = Field(default_factory=list)
 
 
-@dataclass
-class PortInstaller:
-    tasks: list[dict] = field(default_factory=list)
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+class PortInstaller(_Model):
+    tasks: list[dict] = Field(default_factory=list)
 
 
-@dataclass
-class UpsertAppReleaseRequestDTO:
+class UpsertAppReleaseRequestDTO(_Model):
     descr: PortDescr
     installer: PortInstaller
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
 
-@dataclass
-class UpsertAppReleaseResponseDTO:
+class UpsertAppReleaseResponseDTO(_Model):
     app_release_uuid: str
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name

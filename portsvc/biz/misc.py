@@ -1,12 +1,11 @@
 import logging
-import typing as t
+from collections.abc import Callable
 
 log = logging.getLogger("portsvc")
 
 
-@t.no_type_check
-def log_input_output(func):
-    def wrap(*args, **kwargs):
+def log_input_output[**P, R](func: Callable[P, R]) -> Callable[P, R]:
+    def wrap(*args: P.args, **kwargs: P.kwargs) -> R:
         # Log the function name and arguments
         log.debug("calling %s with args: %s, kwargs: %s", func.__name__, args, kwargs)
 

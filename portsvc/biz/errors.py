@@ -2,12 +2,12 @@ import json
 import logging
 import typing as t
 
-from flask import (
-    Flask,
-    Response,
+from fastapi import (
+    FastAPI,
+    Request,
 )
-from marshmallow import ValidationError
-from werkzeug.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 ERROR_APP_OP = (1409, "app operational error")
 ERROR_UNKNOWN = (1500, "unknown error")
@@ -16,51 +16,42 @@ log = logging.getLogger("portsvc")
 
 
 class BizException(Exception):
-    def __init__(self, code: t.Optional[int] = None, message: t.Optional[t.Any] = None) -> None:
+    def __init__(self, code: int | None = None, message: t.Any | None = None) -> None:
         self.code = code
         self.message = message
         super().__init__(message)
 
 
 class AppOpException(BizException):
-    def __init__(self, message: t.Optional[t.Any] = None) -> None:
+    def __init__(self, message: t.Any | None = None) -> None:
         code = ERROR_APP_OP[0]
         message = message or ERROR_APP_OP[1]
         super().__init__(code, message)
 
 
-def init_app(app: Flask) -> None:
-    """Inits error handlers.
+def init_app(app: FastAPI) -> None:
+    """Inits error handlers."""
 
-    Make sure FLASK_PROPAGATE_EXCEPTIONS is set to `true`, otherwise errorhandlers will be unreachable.
-    """
-
-    @app.errorhandler(Exception)
-    def handle_exception(e: Exception) -> Response:
-        if isinstance(e, HTTPException):
-            return e
-        res = json.dumps({"code": ERROR_UNKNOWN[0], "message": ERROR_UNKNOWN[1]})
+    # HTTPException is handled by FastAPI's default handler, this one only sees unhandled errors
+    @app.exception_handler(Exception)
+    async def handle_exception(_: Request, e: Exception) -> JSONResponse:
         log.exception(e)
-        return Response(res, mimetype="application/json", status=500)
+        return JSONResponse({"code": ERROR_UNKNOWN[0], "message": ERROR_UNKNOWN[1]}, status_code=500)
 
-    @app.errorhandler(ValidationError)
-    def handle_validation_error(e: ValidationError) -> Response:
-        res = json.dumps(
-            {
-                "code": 1400,
-                "message": e.messages,
-            }
-        )
-        log.error(res)
-        return Response(res, mimetype="application/json", status=400)
+    @app.exception_handler(ValidationError)
+    async def handle_validation_error(_: Request, e: ValidationError) -> JSONResponse:
+        res = {
+            "code": 1400,
+            "message": e.errors(include_url=False, include_context=False, include_input=False),
+        }
+        log.error(json.dumps(res))
+        return JSONResponse(res, status_code=400)
 
-    @app.errorhandler(BizException)
-    def handle_biz_exception(e: BizException) -> Response:
-        res = json.dumps(
-            {
-                "code": e.code,
-                "message": e.message,
-            }
-        )
-        log.error(res)
-        return Response(res, mimetype="application/json", status=409)
+    @app.exception_handler(BizException)
+    async def handle_biz_exception(_: Request, e: BizException) -> JSONResponse:
+        res = {
+            "code": e.code,
+            "message": e.message,
+        }
+        log.error(json.dumps(res))
+        return JSONResponse(res, status_code=409)

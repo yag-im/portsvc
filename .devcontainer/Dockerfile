@@ -1,6 +1,6 @@
-ARG DEBIAN_VER=bookworm
+ARG DEBIAN_VER=trixie
 
-FROM mcr.microsoft.com/devcontainers/python:1-3.11-${DEBIAN_VER}
+FROM mcr.microsoft.com/devcontainers/python:3-3.14-${DEBIAN_VER}
 
 ARG DEBIAN_FRONTEND=noninteractive
 

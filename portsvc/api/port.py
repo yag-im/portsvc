@@ -1,9 +1,12 @@
+import typing as t
+
 import yaml
-from flask import (
-    Response,
-    request,
+from fastapi import (
+    APIRouter,
+    Depends,
+    Request,
 )
-from flask_restful import Resource
+from sqlalchemy.orm import Session
 
 from portsvc.biz.dto import (
     UpsertAppReleaseRequestDTO,
@@ -13,19 +16,31 @@ from portsvc.biz.port import (
     publish,
     upsert_app_release,
 )
+from portsvc.biz.sqldb import get_session
+
+router = APIRouter(prefix="/ports/apps/{igdb_slug}/releases/{app_release_uuid}")
+
+DbSession = t.Annotated[Session, Depends(get_session)]
 
 
-class UpsertAppRelease(Resource):
-    def post(self, igdb_slug: str, app_release_uuid: str) -> Response:
-        """Adds new or updates existing app release."""
-        port_data = yaml.safe_load(request.get_data())
-        req: UpsertAppReleaseRequestDTO = UpsertAppReleaseRequestDTO.Schema().load(data=port_data)
-        res = upsert_app_release(igdb_slug, app_release_uuid, req)
-        return UpsertAppReleaseResponseDTO.Schema().dump(res), 200
+async def upsert_request(request: Request) -> UpsertAppReleaseRequestDTO:
+    return UpsertAppReleaseRequestDTO.model_validate(yaml.safe_load(await request.body()))
 
 
-class Publish(Resource):
-    def post(self, igdb_slug: str, app_release_uuid: str) -> Response:
-        """Publishes app release, which includes uploading app bundle files, media assets etc"""
-        publish(igdb_slug, app_release_uuid)
-        return "", 200
+# sync handlers run in a threadpool, biz layer is blocking (sqlalchemy, requests, boto3)
+@router.post("")
+def post_upsert_app_release(
+    igdb_slug: str,
+    app_release_uuid: str,
+    req: t.Annotated[UpsertAppReleaseRequestDTO, Depends(upsert_request)],
+    session: DbSession,
+) -> UpsertAppReleaseResponseDTO:
+    """Adds new or updates existing app release."""
+    return upsert_app_release(session, igdb_slug, app_release_uuid, req)
+
+
+@router.post("/publish")
+def post_publish(igdb_slug: str, app_release_uuid: str, session: DbSession) -> str:
+    """Publishes app release, which includes uploading app bundle files, media assets etc"""
+    publish(session, igdb_slug, app_release_uuid)
+    return ""

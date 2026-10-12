@@ -1,11 +1,7 @@
-import typing as t
-
 import requests
 from requests import Response
-from requests.adapters import (
-    HTTPAdapter,
-    Retry,
-)
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 # requests
 CONNECT_TIMEOUT = 3
@@ -31,13 +27,11 @@ def _get_requests_session(
     return sess
 
 
-def get_url(url: str, params: t.Optional[dict] = None, headers: t.Optional[dict] = None) -> Response:
+def get_url(url: str, params: dict | None = None, headers: dict | None = None) -> Response:
     s = _get_requests_session()
     return s.get(url, params=params, headers=headers, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))
 
 
-def post_url(
-    url: str, params: t.Optional[dict] = None, headers: t.Optional[dict] = None, data: t.Optional[str] = None
-) -> Response:
+def post_url(url: str, params: dict | None = None, headers: dict | None = None, data: str | None = None) -> Response:
     s = _get_requests_session()
     return s.post(url, params=params, headers=headers, data=data, timeout=(CONNECT_TIMEOUT, READ_TIMEOUT))

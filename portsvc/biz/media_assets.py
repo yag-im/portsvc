@@ -4,9 +4,13 @@ from pathlib import Path
 
 import boto3
 import requests
-from sqlalchemy.orm import contains_eager
+from sqlalchemy.orm import (
+    Session,
+    contains_eager,
+)
 
 from portsvc.biz.dto import MediaAssets
+from portsvc.biz.errors import AppOpException
 from portsvc.biz.models import AppReleaseDAO
 
 AWS_BUCKET_NAME = "cdn.yag.im"
@@ -17,19 +21,22 @@ COVER_SIZE = "cover_big"
 SCREENSHOT_SIZE = "screenshot_huge"
 
 
-def upload(app_release_id: str) -> None:
-    session = boto3.Session(profile_name="yag-prod")
-    s3 = session.client("s3")
+def upload(session: Session, app_release_id: str) -> None:
+    aws_session = boto3.Session(profile_name="yag-prod")
+    s3 = aws_session.client("s3")
 
-    app_release: AppReleaseDAO = (
-        AppReleaseDAO.query.join(AppReleaseDAO.game)
+    app_release: AppReleaseDAO | None = (
+        session.query(AppReleaseDAO)
+        .join(AppReleaseDAO.game)
         .options(contains_eager(AppReleaseDAO.game))
         .filter(AppReleaseDAO.uuid == app_release_id)
         .first()
     )
+    if app_release is None:
+        raise AppOpException(message=f"App release not found: {app_release_id}")
 
     if app_release.media_assets:
-        localized_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.media_assets)
+        localized_media_assets = MediaAssets.model_validate(app_release.media_assets)
         ports_data_media_dir = Path(os.environ["PORTS_DATA_MEDIA_DIR"])
 
         with tempfile.TemporaryDirectory() as td:
@@ -43,7 +50,7 @@ def upload(app_release_id: str) -> None:
                         ports_data_media_dir / "screenshots" / img_name, AWS_BUCKET_NAME, f"screenshots/{img_name}"
                     )
 
-    game_media_assets: MediaAssets = MediaAssets.Schema().load(data=app_release.game.media_assets)
+    game_media_assets = MediaAssets.model_validate(app_release.game.media_assets or {})
     with tempfile.TemporaryDirectory() as td:
         if not app_release.media_assets and game_media_assets.cover:
             # no localized cover - proceed with one from igdb

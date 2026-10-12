@@ -1,17 +1,13 @@
-import typing as t
-
 import requests
-from requests.adapters import (
-    HTTPAdapter,
-    Retry,
-)
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 
 def get_http_client_session(
     total: int = 0,
     backoff_factor: int = 3,
-    allowed_methods: t.Optional[list[str]] = None,
-    status_forcelist: t.Optional[list[int]] = None,
+    allowed_methods: list[str] | None = None,
+    status_forcelist: list[int] | None = None,
 ) -> requests.Session:
     # backoff_factor for 3: 5, 10, 20, 40, 80, 160, 320, 640, 1280, 2560
     if not allowed_methods:

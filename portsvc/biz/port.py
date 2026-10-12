@@ -1,12 +1,14 @@
 import logging
+from typing import Any
 
 from sqlalchemy import null
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
 
 from portsvc.biz.dto import (
-    MediaAssets,
     PortDescr,
     UpsertAppReleaseRequestDTO,
+    UpsertAppReleaseResponseDTO,
 )
 from portsvc.biz.errors import AppOpException
 from portsvc.biz.media_assets import upload as upload_media_assets
@@ -17,12 +19,11 @@ from portsvc.biz.models import (
     AppReleaseDAO,
 )
 from portsvc.biz.scrapers.igdb.index import get_game_by_slug
-from portsvc.biz.sqldb import sqldb
 
 log = logging.getLogger("portsvc")
 
 
-def try_to_fetch_game_from_igdb(igdb_slug: str, upd_params: dict) -> bool:
+def try_to_fetch_game_from_igdb(session: Session, igdb_slug: str, upd_params: dict) -> bool:
     igdb_game = get_game_by_slug(igdb_slug)
     if not igdb_game:
         return False
@@ -75,8 +76,8 @@ def try_to_fetch_game_from_igdb(igdb_slug: str, upd_params: dict) -> bool:
     # drop all None values from dict because None values for JSONB columns go as "null" strings instead of None
     values = {k: v for k, v in values.items() if v is not None}
     sql_cmd = insert(AppDAO).values(values)
-    sqldb.session.execute(sql_cmd)
-    sqldb.session.commit()
+    session.execute(sql_cmd)
+    session.commit()
     return True
 
 
@@ -90,9 +91,9 @@ def get_ua_lock_pointer_state(req: UpsertAppReleaseRequestDTO) -> bool:
         for t in port_installer.tasks:
             if "retroarch" in t:
                 tasks = t["retroarch"].get("tasks", [])
-                for t in tasks:
-                    if "gen_run_script" in t:
-                        flavor = t["gen_run_script"].get("core", "default")
+                for task in tasks:
+                    if "gen_run_script" in task:
+                        flavor = task["gen_run_script"].get("core", "default")
                         if flavor == "fuse":
                             return False
                         elif flavor == "same_cdi":
@@ -122,47 +123,51 @@ def get_ua_lock_pointer_state(req: UpsertAppReleaseRequestDTO) -> bool:
     raise ValueError(f"Cannot determine UA lock pointer state based on provided data: {req}")
 
 
-def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppReleaseRequestDTO) -> dict:
+def upsert_app_release(
+    session: Session, igdb_slug: str, app_release_uuid: str, req: UpsertAppReleaseRequestDTO
+) -> UpsertAppReleaseResponseDTO:
     """Upserts app release."""
     port_descr = req.descr
     if port_descr.reqs.ua is None or port_descr.reqs.ua.lock_pointer is None:
         if port_descr.reqs.ua is None:
-            port_descr.reqs.ua = PortDescr.Reqs.Ua(get_ua_lock_pointer_state(req))
+            port_descr.reqs.ua = PortDescr.Reqs.Ua(lock_pointer=get_ua_lock_pointer_state(req))
         else:
             port_descr.reqs.ua.lock_pointer = get_ua_lock_pointer_state(req)
 
     # upserting "app" table parts first
-    upd_params = {"refs": PortDescr.Refs.Schema().dump(port_descr.refs)}
+    upd_params: dict[Any, Any] = {"refs": port_descr.refs.model_dump()}
     if port_descr.esrb_rating:
         upd_params["esrb_rating"] = port_descr.esrb_rating
     if port_descr.tags:
         upd_params["tags"] = port_descr.tags
-    rows_updated = sqldb.session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).update(upd_params)
+    rows_updated = session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).update(upd_params)
     if rows_updated == 0:
-        if not try_to_fetch_game_from_igdb(igdb_slug, upd_params):
+        if not try_to_fetch_game_from_igdb(session, igdb_slug, upd_params):
             raise AppOpException(message="App not found")
     elif rows_updated > 1:
         raise AppOpException(message="Multiple apps touched, this is unexpected, please investigate")
 
     # upserting "app_release" table parts
-    app: AppDAO = sqldb.session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).first()
-    company: AppCompanyDAO = (
-        sqldb.session.query(AppCompanyDAO).filter(AppCompanyDAO.name == port_descr.publisher).first()
-    )
-    platform: AppPlatformDAO = (
-        sqldb.session.query(AppPlatformDAO).filter(AppPlatformDAO.slug == port_descr.platform).first()
-    )
+    app = session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).first()
+    if app is None:
+        raise AppOpException(message="App not found")
+    company = session.query(AppCompanyDAO).filter(AppCompanyDAO.name == port_descr.publisher).first()
+    if company is None:
+        raise AppOpException(message=f"Company not found: {port_descr.publisher}")
+    platform = session.query(AppPlatformDAO).filter(AppPlatformDAO.slug == port_descr.platform).first()
+    if platform is None:
+        raise AppOpException(message=f"Platform not found: {port_descr.platform}")
     values = {
-        "app_reqs": PortDescr.Reqs.Schema().dump(port_descr.reqs),
+        "app_reqs": port_descr.reqs.model_dump(),
         "companies": [{"id": company.id, "developer": False, "porting": False, "publisher": True, "supporting": False}],
-        "distro": PortDescr.Distro.Schema().dump(port_descr.distro),
+        "distro": port_descr.distro.model_dump(),
         "game_id": app.id,
         "is_visible": port_descr.is_visible,
         "lang": port_descr.lang,
-        "media_assets": (MediaAssets.Schema().dump(port_descr.media_assets) if port_descr.media_assets else null()),
+        "media_assets": (port_descr.media_assets.model_dump() if port_descr.media_assets else null()),
         "name": port_descr.name,
         "platform_id": platform.id,
-        "runner": PortDescr.Runner.Schema().dump(port_descr.runner),
+        "runner": port_descr.runner.model_dump(),
         "uuid": app_release_uuid,
         "year_released": port_descr.year_released,
     }
@@ -172,12 +177,12 @@ def upsert_app_release(igdb_slug: str, app_release_uuid: str, req: UpsertAppRele
         index_where=(AppReleaseDAO.uuid == app_release_uuid),
         set_=values,
     )
-    sqldb.session.execute(sql_cmd)
-    sqldb.session.commit()
+    session.execute(sql_cmd)
+    session.commit()
 
-    return {"app_release_uuid": app_release_uuid}
+    return UpsertAppReleaseResponseDTO(app_release_uuid=app_release_uuid)
 
 
-def publish(igdb_slug: str, app_release_id: str) -> None:
+def publish(session: Session, igdb_slug: str, app_release_id: str) -> None:
     log.debug("publishing app: %s, app_release_id: %s", igdb_slug, app_release_id)
-    upload_media_assets(app_release_id)
+    upload_media_assets(session, app_release_id)

@@ -1,7 +1,6 @@
 import logging
 import os
 import time
-import typing as t
 
 import requests
 
@@ -30,7 +29,7 @@ def get_access_token() -> str:
 ACCESS_TOKEN = get_access_token()
 
 
-def _post_url(url: str, data: t.Optional[str] = None) -> requests.Response:
+def _post_url(url: str, data: str | None = None) -> requests.Response:
     return post_url(
         url,
         headers={"Client-ID": CLIENT_ID, "Authorization": f"Bearer {ACCESS_TOKEN}", "Accept": "application/json"},
