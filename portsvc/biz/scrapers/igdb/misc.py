@@ -5,6 +5,10 @@ import time
 
 import requests
 
+from portsvc.biz.errors import (
+    IgdbFailed,
+    upstream_errors,
+)
 from portsvc.biz.scrapers.misc import post_url
 
 CLIENT_ID = os.environ.get("IGDB_CLIENT_ID")
@@ -33,7 +37,8 @@ def _fetch_access_token() -> str:
     )
     payload = res.json()
     if "access_token" not in payload:
-        raise RuntimeError(f"Failed to obtain IGDB access token: {payload}")
+        log.error("Failed to obtain IGDB access token: %s", payload)
+        raise IgdbFailed()
     return payload["access_token"]
 
 
@@ -55,6 +60,11 @@ def _post_url(url: str, data: str | None = None) -> requests.Response:
 
 
 def get_data(url: str, data: str) -> list[dict]:
+    with upstream_errors(IgdbFailed, requests.RequestException):
+        return _get_data(url, data)
+
+
+def _get_data(url: str, data: str) -> list[dict]:
     offset = 0
     limit = 500
     res = []
@@ -64,10 +74,11 @@ def get_data(url: str, data: str) -> list[dict]:
         if not isinstance(cur_res, list) or not cur_res:
             if cur_res:
                 log.error("IGDB error for %s query=%s: %s", url, query, cur_res)
+                raise IgdbFailed()
             break
         if "id" not in cur_res[0] and "status" in cur_res[0] and cur_res[0]["status"] != 200:
             log.error("IGDB error for %s query=%s: %s", url, query, cur_res)
-            break
+            raise IgdbFailed()
         res += cur_res
         offset += limit
         time.sleep(MIN_SLEEP)

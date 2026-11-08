@@ -10,7 +10,13 @@ from portsvc.biz.dto import (
     UpsertAppReleaseRequestDTO,
     UpsertAppReleaseResponseDTO,
 )
-from portsvc.biz.errors import AppOpException
+from portsvc.biz.errors import (
+    AppNotFound,
+    CompanyNotFound,
+    InconsistentData,
+    PlatformNotFound,
+    UaLockPointerUnknown,
+)
 from portsvc.biz.media_assets import upload as upload_media_assets
 from portsvc.biz.models import (
     AppCompanyDAO,
@@ -120,7 +126,7 @@ def get_ua_lock_pointer_state(req: UpsertAppReleaseRequestDTO) -> bool:
         return False
     elif runner_name == "dosbox":
         return True
-    raise ValueError(f"Cannot determine UA lock pointer state based on provided data: {req}")
+    raise UaLockPointerUnknown(runner=port_descr.runner.name)
 
 
 def upsert_app_release(
@@ -143,20 +149,20 @@ def upsert_app_release(
     rows_updated = session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).update(upd_params)
     if rows_updated == 0:
         if not try_to_fetch_game_from_igdb(session, igdb_slug, upd_params):
-            raise AppOpException(message="App not found")
+            raise AppNotFound(igdb_slug=igdb_slug)
     elif rows_updated > 1:
-        raise AppOpException(message="Multiple apps touched, this is unexpected, please investigate")
+        raise InconsistentData(igdb_slug=igdb_slug)
 
     # upserting "app_release" table parts
     app = session.query(AppDAO).filter(AppDAO.igdb["slug"].astext == igdb_slug).first()
     if app is None:
-        raise AppOpException(message="App not found")
+        raise AppNotFound(igdb_slug=igdb_slug)
     company = session.query(AppCompanyDAO).filter(AppCompanyDAO.name == port_descr.publisher).first()
     if company is None:
-        raise AppOpException(message=f"Company not found: {port_descr.publisher}")
+        raise CompanyNotFound(publisher=port_descr.publisher)
     platform = session.query(AppPlatformDAO).filter(AppPlatformDAO.slug == port_descr.platform).first()
     if platform is None:
-        raise AppOpException(message=f"Platform not found: {port_descr.platform}")
+        raise PlatformNotFound(platform=port_descr.platform)
     values = {
         "app_reqs": port_descr.reqs.model_dump(),
         "companies": [{"id": company.id, "developer": False, "porting": False, "publisher": True, "supporting": False}],
@@ -185,4 +191,4 @@ def upsert_app_release(
 
 def publish(session: Session, igdb_slug: str, app_release_id: str) -> None:
     log.debug("publishing app: %s, app_release_id: %s", igdb_slug, app_release_id)
-    upload_media_assets(session, app_release_id)
+    upload_media_assets(session, igdb_slug, app_release_id)

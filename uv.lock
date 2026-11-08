@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14, <4"
 
 [[package]]
@@ -215,6 +215,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/56/4f/f7c30a73127e0a8bbffe788369b8359e530b01ae06e2757936fa35bc5e6d/fastapi-0.142.2.tar.gz", hash = "sha256:06366626f2e70576367714d9ab2fe8472e6c8456dba69b399f9f797ab5e92570", size = 466721, upload-time = "2026-09-30T09:51:11.277Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a0/b6/78aaf9141fb46742928c113f3cf6ef2259d538cb02b604b7656c1dc9883c/fastapi-0.142.2-py3-none-any.whl", hash = "sha256:bd5f4d81f1e93a88bcd77caf4dfe3c2dbffc3805407a0007e9a114c18b3a670b", size = 144409, upload-time = "2026-09-30T09:51:09.8Z" },
+]
+
+[[package]]
+name = "fastapi-rfc9457"
+version = "0.2.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/50/1de3994b8e550f19525e73b43ca076584a770cfdb1d068da8491dfeaa91d/fastapi_rfc9457-0.2.4.tar.gz", hash = "sha256:3aa4364700fd9f9efd863b01e17e9e503a6b90bcec2a63e6b70a472d6d8f44bf", size = 39182, upload-time = "2026-09-30T21:23:01.354Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4a/d6/fb5b31b7e3ddb1259191a7a2e87feeb226b1f65981177a0b3c26b6dd6a39/fastapi_rfc9457-0.2.4-py3-none-any.whl", hash = "sha256:66e5f0aaa8fe8b834e763956af95e23297f1d742ada3be6e06acc0cd7c160c95", size = 27538, upload-time = "2026-09-30T21:22:59.655Z" },
+]
+
+[package.optional-dependencies]
+server = [
+    { name = "fastapi" },
 ]
 
 [[package]]
@@ -617,9 +635,11 @@ wheels = [
 [[package]]
 name = "portsvc"
 source = { editable = "." }
+default-groups = ["dev", "test"]
 dependencies = [
     { name = "boto3" },
     { name = "fastapi" },
+    { name = "fastapi-rfc9457", extra = ["server"] },
     { name = "gunicorn" },
     { name = "jinja2" },
     { name = "opentelemetry-distro" },
@@ -650,6 +670,7 @@ test = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.35.19,<2" },
     { name = "fastapi", specifier = ">=0.142.2,<0.143.0" },
+    { name = "fastapi-rfc9457", extras = ["server"], specifier = "==0.2.4" },
     { name = "gunicorn", specifier = ">=23.0.0,<24" },
     { name = "jinja2", specifier = ">=3.1.6,<4.0.0" },
     { name = "opentelemetry-distro" },
