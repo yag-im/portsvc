@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 
 import pytest
@@ -116,6 +117,32 @@ class TestApi:
         monkeypatch.setattr(errors.log, "error", lambda msg, *_: logged.append(msg))
         res = client.post(UPSERT_URL, content="descr: {}\n")
         assert logged == [res.text]
+
+    def test_unknown_error_is_not_logged_again_by_server(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        raised = RuntimeError("boom")
+
+        def fake_publish(*_: object) -> None:
+            raise raised
+
+        monkeypatch.setattr("portsvc.api.port.publish", fake_publish)
+        client.post(PUBLISH_URL)
+
+        def server_log_record(exc: Exception) -> logging.LogRecord:
+            return logging.LogRecord(
+                "uvicorn.error",
+                logging.ERROR,
+                __file__,
+                0,
+                "Exception in ASGI application",
+                None,
+                (type(exc), exc, None),
+            )
+
+        server_log = logging.getLogger("uvicorn.error")
+        assert not server_log.filter(server_log_record(raised))
+        assert server_log.filter(server_log_record(RuntimeError("not handled by app")))
 
     def test_unknown_route_keeps_fastapi_format(self, client: TestClient) -> None:
         res = client.get("/no/such/route")

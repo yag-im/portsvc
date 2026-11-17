@@ -136,6 +136,22 @@ def upstream_errors(problem: type[Problem], *exc_types: type[Exception]) -> Iter
 
 Handler = Callable[[Request, t.Any], Response | Awaitable[Response]]
 
+_LOGGED_ATTR = "_portsvc_logged"
+
+
+class _SkipLoggedErrors(logging.Filter):
+    """Drops server's duplicate traceback of an error already logged by our handler.
+
+    Starlette re-raises unhandled errors after the handler responds, so uvicorn logs them again.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exc = record.exc_info[1] if record.exc_info else None
+        return not getattr(exc, _LOGGED_ATTR, False)
+
+
+_skip_logged_errors = _SkipLoggedErrors()
+
 
 def _logged(handler: Handler, with_traceback: bool = False) -> Handler:
     """Wraps library's handler to log every problem response it produces."""
@@ -143,6 +159,7 @@ def _logged(handler: Handler, with_traceback: bool = False) -> Handler:
     async def wrapper(request: Request, e: Exception) -> Response:
         if with_traceback:
             log.exception(e)
+            setattr(e, _LOGGED_ATTR, True)
         res = handler(request, e)
         if inspect.isawaitable(res):
             res = await res
@@ -180,6 +197,7 @@ def init_app(app: FastAPI) -> None:
     for exc_type in (Problem, RequestValidationError):
         app.add_exception_handler(exc_type, _logged(app.exception_handlers[exc_type]))
     app.add_exception_handler(Exception, _logged(app.exception_handlers[Exception], with_traceback=True))
+    logging.getLogger("uvicorn.error").addFilter(_skip_logged_errors)
 
     # framework errors (e.g. unknown route 404, 405) keep FastAPI's default format
     @app.exception_handler(StarletteHTTPException)
